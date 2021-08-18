@@ -1,10 +1,14 @@
+from image_view_window import ImageViewWindow
 from random import sample
 from numpy import dtype
 from numpy.core.fromnumeric import reshape
 import utils
 import numpy as np
+from image_view_window import *
 # importing Qt widgets
 from PyQt5.QtWidgets import *
+
+from draw_window_test import *
 
 # importing system
 import sys
@@ -25,7 +29,7 @@ try:
 except:
     warnings.warn("PyIFT is not installed.", ImportWarning)
 
-class SamplePoint(pg.SpotItem):
+class SamplePoint():
 	def __init__(self, id, x, y, img, true_label):
 		self.id=id
 		self.x=x
@@ -160,4 +164,7 @@ class ProjectionWindow(QMainWindow):
 	
 	def clicaste(self, obj, points):
 		key = str(points[0]._data['x']) + " " + str(points[0]._data['y'])
+		# self.sample_view_window = ImageViewWindow(self.sample_points[key].img)
+		self.sample_view_window = DrawWindow()
 		print("clicaste no ponto da imagem: ", self.sample_points[key].img)
+		self.sample_view_window.show()
