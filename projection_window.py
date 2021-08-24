@@ -46,6 +46,21 @@ class SamplePoint():
         print("}")
 
 
+class ProjectionPoint(QGraphicsEllipseItem):
+    def setAssociatedSamplePoint(self, point):
+        self.sample_point = point
+        return
+
+    def mousePressEvent(self, event):
+        # Do your stuff here.
+        self.sample_point.print_info()
+        return QGraphicsEllipseItem.mousePressEvent(self, event)
+
+    def hoverMoveEvent(self, event):
+        # Do your stuff here.
+        pass
+
+
 class ProjectionWindow(QWidget):
 
     def __init__(self):
@@ -145,7 +160,7 @@ class ProjectionWindow(QWidget):
         for key in self.sample_points:
             sample = self.sample_points[key]
             # Draw a ellipse item, setting the dimensions.
-            point = QGraphicsEllipseItem(0, 0, 10, 10)
+            point = ProjectionPoint(0, 0, 10, 10)
             point.setPos(sample.x * 400, sample.y*400)
 
             # Define the brush (fill).
@@ -158,9 +173,4 @@ class ProjectionWindow(QWidget):
             point.setPen(pen)
 
             scene.addItem(point)
-
-    def clicaste(self, obj, points):
-        key = str(points[0]._data['x']) + " " + str(points[0]._data['y'])
-        # self.sample_view_window = ImageViewWindow(self.sample_points[key].img)
-        print("clicaste no ponto da imagem: ", self.sample_points[key].img)
-        self.sample_view_window.show()
+            point.setAssociatedSamplePoint(sample)
