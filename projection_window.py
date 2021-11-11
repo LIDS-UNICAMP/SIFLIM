@@ -1,3 +1,4 @@
+from projector import Projector
 from image_view_window import ImageViewWindow
 from random import sample
 from numpy import dtype
@@ -10,16 +11,15 @@ from PyQt5.QtWidgets import *
 
 from draw_window_test import *
 
-# importing system
-import sys
-
+import os
+from datetime import datetime
 from pyift.pyift import Sample
 
 import utils
-
+from projector import *
 
 from PyQt5.QtGui import *
-
+from PyQt5.QtCore import *
 import warnings
 ift = None
 
@@ -29,142 +29,238 @@ except:
     warnings.warn("PyIFT is not installed.", ImportWarning)
 
 
-class SamplePoint():
-    def __init__(self, id, x, y, img, true_label):
-        self.id = id
-        self.x = x
-        self.y = y
-        self.img = img
-        self.true_label = true_label
-
-    def print_info(self):
-        print("{")
-        print("    id: ", self.id)
-        print("    x: ", self.x)
-        print("    y: ", self.y)
-        print("    img: ", self.img)
-        print("}")
-
 
 class ProjectionPoint(QGraphicsEllipseItem):
     def setAssociatedSamplePoint(self, point):
         self.sample_point = point
         return
 
-    def mousePressEvent(self, event):
-        # Do your stuff here.
-        self.sample_point.print_info()
-        return QGraphicsEllipseItem.mousePressEvent(self, event)
+    # def mousePressEvent(self, event):
+    #     # Do your stuff here.
+    #     self.sample_point.print_info()
+    #     event.accept()
+    #     return QGraphicsEllipseItem.mousePressEvent(self, event)
 
     def hoverMoveEvent(self, event):
         # Do your stuff here.
         pass
 
+class ProjectionScene(QGraphicsScene):
+    def __init__(self, parent=None):
+        super(ProjectionScene, self).__init__(parent)
+        self.setSceneRect(0,0,500,500)
+
+    def mousePressEvent(self, event):
+        items = self.items(event.scenePos())
+        # for item in items:
+        #     item.sample_point.print_info()
+        if len(items) > 0:
+            self.image_view = ImageViewWindow(points=items)
+            self.image_view.show()
+        super(ProjectionScene, self).mousePressEvent(event)
 
 class ProjectionWindow(QWidget):
 
     def __init__(self):
         super().__init__()
 
+
+        self.inputDataSet = None
+        self.OPFDataset = None
+        self.patchCSV = None
         # setting title
-        self.setWindowTitle("PyQt Test")
+        self.setWindowTitle("Select Flim")
 
         # setting geometry
         self.setGeometry(100, 100, 2000, 800)
 
-        # icon
-        icon = QIcon("skin.png")
 
-        # setting icon to the window
-        self.setWindowIcon(icon)
+        self.createActions()
+        # self.createMenuBar()
 
-        mainLayout = QHBoxLayout()
 
         self.createProjectionView()
         self.createProjectionConfig()
+        
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.projectionConfig)
+        hbox.addWidget(self.projectionView)
+        self.setLayout(hbox)
 
-        mainLayout.addWidget(self.projectionConfig)
-        mainLayout.addWidget(self.projectionView)
-
-        self.setLayout(mainLayout)
         # showing all the widgets
         self.show()
 
+    def createMenuBar(self):
+        menuBar = QMenuBar(self)
+        self.setMenuBar(menuBar)
+
+        # Creating menus using a QMenu object
+        fileMenu = QMenu("&File", self)
+        menuBar.addMenu(fileMenu)
+        # Creating menus using a title
+        editMenu = menuBar.addMenu("&Edit")
+        helpMenu = menuBar.addMenu("&Help")
+
+        fileMenu.addAction(self.importAction)
+        fileMenu.addAction(self.saveAction)
+    
+    def createActions(self):
+        self.importAction = QAction("&Import Dataset...", self)
+        self.importAction.triggered.connect(self.importDataset)
+        self.saveAction = QAction("&Save", self)
+
+    def onInputDatasetButtonClicked(self):
+        filename, filter = QtGui.QFileDialog.getOpenFileName(parent=self, caption='Open file', dir='.', filter='*.zip')
+        if filename:
+            self.inputFileLineEdit.setText(filename)
+
+    def saveMarkers(self):
+        now = datetime.now()
+        dt_string = now.strftime("%d-%m-%Y_%H:%M:%S")
+        markers_dir = os.path.abspath("markers")
+        project_dir = os.path.join(markers_dir, dt_string)
+        os.mkdir(project_dir)
+        for img in MARKERS.keys():
+            img_name = os.path.basename(img)
+            file_name = img_name.split(".")[0] + str("-seeds.txt")
+            file_path = os.path.join(project_dir, file_name)
+            with open(file_path, 'a') as f:
+                w, h = tuple(MARKERS[img])[0][2], tuple(MARKERS[img])[0][3]
+                n_marker_pixels = len(MARKERS[img])
+                f.write("{} {} {}\n".format(n_marker_pixels, w, h))
+                for marker_pixel in MARKERS[img]:
+                    x = marker_pixel[0]
+                    y = marker_pixel[1]
+                    label = marker_pixel[4]
+                    f.write("{} {} -1 {}\n".format(x, y, label))
+                f.close()
+
+    def getOPFDataset(self):
+        if self.projector == None:
+            return None
+        
+        return self.projector.dataset
+
+    def importDataset(self):
+        fname = QFileDialog.getOpenFileName(self, 'Import Dataset', 
+         '.',"OPFDataset Files (*.zip)")
+        self.inputDataSet = fname[0]
+        self.importedDatasetLabel.setText("Selected: " + str(self.inputDataSet))
+    
+    def importPatchCSV(self):
+        fname = QFileDialog.getOpenFileName(self, 'Import Patch CSV file', 
+         '.',"CSV Files (*.csv)")
+        self.patchCSV = fname[0]
+        self.importedCSVLabel.setText("Selected: " + str(self.patchCSV))
+
+        
+
     def createProjectionConfig(self):
-        self.projectionConfig = QGroupBox("Group 1")
+        self.projectionConfig = QGroupBox("Projection Settings")
+        self.projectionConfig.setMaximumWidth(400)
 
-        radioButton1 = QRadioButton("Radio button 1")
-        radioButton2 = QRadioButton("Radio button 2")
-        radioButton3 = QRadioButton("Radio button 3")
-        radioButton1.setChecked(True)
+        #  ============== INPUT FILES ===================  
+        inputFilesGroupBox = QGroupBox("Input Files")
+        inputFilesGroupBoxLayout = QVBoxLayout()
+        inputFilesGroupBox.setLayout(inputFilesGroupBoxLayout)
 
-        checkBox = QCheckBox("Tri-state check box")
-        checkBox.setTristate(True)
-        checkBox.setCheckState(Qt.PartiallyChecked)
+        patchVisualization = QRadioButton("Patch Visualization")
+        patchVisualization.setChecked(True)
+        inputFilesGroupBoxLayout.addWidget(patchVisualization)
+
+        button1 = QPushButton(self)
+        button1.setText("Import Dataset")
+        button1.clicked.connect(self.importDataset)
+        self.importedDatasetLabel = QLabel("Selected: " + str(self.inputDataSet))
+        inputFilesGroupBoxLayout.addWidget(button1)
+        inputFilesGroupBoxLayout.addWidget(self.importedDatasetLabel)
+
+        button2 = QPushButton(self)
+        button2.setText("Import CSV")
+        button2.clicked.connect(self.importPatchCSV)
+        self.importedCSVLabel = QLabel("Selected: " + str(self.patchCSV))
+        inputFilesGroupBoxLayout.addWidget(button2)
+        inputFilesGroupBoxLayout.addWidget(self.importedCSVLabel)
+
+
+        # ============= HYPERPARAMETERS ============= 
+        self.hyperparameters = QGroupBox("Hyperparameters")
+        perplexitySlider = QSlider(Qt.Horizontal)
+        perplexitySlider.setMinimum(1)
+        perplexitySlider.setMaximum(100)
+        perplexitySlider.setMaximumWidth(200)
+        perplexitySlider.setValue(30)
+        perplexitySlider.setTickPosition(QSlider.TicksBelow)
+        perplexitySlider.setTickInterval(10)
+        hyperparametersLayout = QVBoxLayout()
+        hyperparametersLayout.addWidget(QLabel("Perplexity"))
+        hyperparametersLayout.addWidget(perplexitySlider)
+        self.hyperparameters.setLayout(hyperparametersLayout)
+
+        # ============== GENERATE PROJECTION ===============
+        generateProjectionButton = QPushButton(self)
+        generateProjectionButton.setText("Generate Projection")
+        generateProjectionButton.clicked.connect(self.createProjectionView)
+
+        # ============== SAVE MARKERS ==================
+        saveMarkersButton = QPushButton(self)
+        saveMarkersButton.setText("Save Markers")
+        saveMarkersButton.clicked.connect(self.saveMarkers)
 
         layout = QVBoxLayout()
-        layout.addWidget(radioButton1)
-        layout.addWidget(radioButton2)
-        layout.addWidget(radioButton3)
-        layout.addWidget(checkBox)
+
+        layout.addWidget(inputFilesGroupBox)
+
+        layout.addWidget(self.hyperparameters)
+
+        layout.addWidget(generateProjectionButton)
+        layout.addWidget(saveMarkersButton)
+
         layout.addStretch(1)
 
         self.projectionConfig.setLayout(layout)
 
-    def setProjectionPoints(self, data):
-        X = data[:, 0]
-        X_ = np.array([x.flatten() for x in X], dtype=np.float32)
-        # print(X_)
-        Y = np.array(data[:, 1], dtype=np.int32)
-        paths = list(data[:, 2])
-        ids = np.array(data[:, 3], dtype=np.int32)
-        # y = np.ndarray([y_[0] for y_ in Y], dtype=np.int32)
-        Z = ift.CreateDataSetFromNumPy(X_, Y)
-        Z.SetId(ids)
-        Z.SetRefData(paths)
+    def setProjectionPoints(self):
 
-        print(Z.nsamples, " amostras")
-        reduced_ds = ift.DimReductionByTSNE(Z, 2, 30, 1000)
 
-        proj_data = Z.GetProjection()
-        orig_data = Z.GetData()
-        ref_data = Z.GetRefData()
-        true_labels = Z.GetTrueLabels()
-        ids = Z.GetIds()
+        self.projector = Projector(self.inputDataSet, self.patchCSV)
+        # self.projector = DummyProjector()
 
-        self.sample_points = {}
-        for i in range(Z.nsamples):
-            img = orig_data[i]
-            sample_x = proj_data[i][0]
-            sample_y = proj_data[i][1]
-            p = SamplePoint(ids[i], sample_x, sample_y,
-                            ref_data[i], true_labels[i])
-            self.sample_points[str(sample_x)+" "+str(sample_y)] = p
+        self.projector.generate_reduced(method='tsne', hyperparameters=(30,0))
+
+        self.projection = self.projector.get_projection()
+
 
     # method for components
     def createProjectionView(self):
+        if self.inputDataSet != None:
+            self.setProjectionPoints()
 
-        training_data = utils.get_training_data()[:1000]
-        self.setProjectionPoints(training_data)
+            scene = ProjectionScene()
 
-        # Defining a scene rect of 500x500, with it's origin at 0,0.
-        # If we don't set this on creation, we can set it later with .setSceneRect
-        scene = QGraphicsScene(0, 0, 500, 500)
+            self.drawProjectionPoints(scene)
+            
+            self.layout().removeWidget(self.projectionView)
+            self.projectionView = QGraphicsView(scene, parent=self)
+            self.layout().addWidget(self.projectionView)
+            self.update()
+        else:
+            label = QLabel("Please select an input dataset.")
+            self.projectionView = label
 
-        self.projectionView = QGraphicsView(scene, parent=self)
-
-        # Convert data array into a list of dictionaries with the x,y-coordinates
-        # pos = [{'pos': tsne[:, i]} for i in range(len(tsne))]
-        # adding spots to the scatter plot
-
-        for key in self.sample_points:
-            sample = self.sample_points[key]
+    def drawProjectionPoints(self, scene):
+    
+        for key in self.projection.sample_points:
+            sample = self.projection.sample_points[key]
             # Draw a ellipse item, setting the dimensions.
             point = ProjectionPoint(0, 0, 10, 10)
-            point.setPos(sample.x * 400, sample.y*400)
+            point.setPos(sample.x * self.projection.scale, sample.y*self.projection.scale)
 
             # Define the brush (fill).
-            brush = QBrush(Qt.red)
+            color = index_to_Qcolor(sample.true_label)
+            color = QColor(color)
+            color.setAlphaF( 1.0 )
+            brush = QBrush(color)
             point.setBrush(brush)
 
             # Define the pen (line)
