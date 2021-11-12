@@ -9,8 +9,6 @@ import numpy as np
 # importing Qt widgets
 from PyQt5.QtWidgets import *
 
-from draw_window_test import *
-
 import os
 from datetime import datetime
 from pyift.pyift import Sample
@@ -111,7 +109,7 @@ class ProjectionWindow(QWidget):
         self.saveAction = QAction("&Save", self)
 
     def onInputDatasetButtonClicked(self):
-        filename, filter = QtGui.QFileDialog.getOpenFileName(parent=self, caption='Open file', dir='.', filter='*.zip')
+        filename, filter = QFileDialog.getOpenFileName(parent=self, caption='Open file', dir='.', filter='*.zip')
         if filename:
             self.inputFileLineEdit.setText(filename)
 
