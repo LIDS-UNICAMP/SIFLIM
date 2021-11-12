@@ -68,6 +68,7 @@ class ProjectionWindow(QWidget):
         self.inputDataSet = None
         self.OPFDataset = None
         self.patchCSV = None
+        self.patches = True
         # setting title
         self.setWindowTitle("Select Flim")
 
@@ -164,9 +165,10 @@ class ProjectionWindow(QWidget):
         inputFilesGroupBoxLayout = QVBoxLayout()
         inputFilesGroupBox.setLayout(inputFilesGroupBoxLayout)
 
-        patchVisualization = QRadioButton("Patch Visualization")
-        patchVisualization.setChecked(True)
-        inputFilesGroupBoxLayout.addWidget(patchVisualization)
+        self.patchVisualization = QRadioButton("Patch Visualization")
+        self.patchVisualization.setChecked(True)
+        self.patchVisualization.toggled.connect(lambda:self.btnstate(self.patchVisualization))
+        inputFilesGroupBoxLayout.addWidget(self.patchVisualization)
 
         button1 = QPushButton(self)
         button1.setText("Import Dataset")
@@ -175,11 +177,11 @@ class ProjectionWindow(QWidget):
         inputFilesGroupBoxLayout.addWidget(button1)
         inputFilesGroupBoxLayout.addWidget(self.importedDatasetLabel)
 
-        button2 = QPushButton(self)
-        button2.setText("Import CSV")
-        button2.clicked.connect(self.importPatchCSV)
+        self.button2 = QPushButton(self)
+        self.button2.setText("Import CSV")
+        self.button2.clicked.connect(self.importPatchCSV)
         self.importedCSVLabel = QLabel("Selected: " + str(self.patchCSV))
-        inputFilesGroupBoxLayout.addWidget(button2)
+        inputFilesGroupBoxLayout.addWidget(self.button2)
         inputFilesGroupBoxLayout.addWidget(self.importedCSVLabel)
 
 
@@ -219,11 +221,24 @@ class ProjectionWindow(QWidget):
         layout.addStretch(1)
 
         self.projectionConfig.setLayout(layout)
+    
+    def btnstate(self,b):
+	
+        if b.isChecked() == True:
+            self.usePatches = True
+            self.button2.setEnabled(True)
+        else:
+            self.usePatches = False
+            self.button2.setEnabled(False)
+            
+			
 
     def setProjectionPoints(self):
 
-
-        self.projector = Projector(self.inputDataSet, self.patchCSV)
+        if self.patches == True:
+            self.projector = Projector(self.inputDataSet, self.patchCSV)
+        else:
+            self.projector = Projector(self.inputDataSet, None)
         # self.projector = DummyProjector()
 
         self.projector.generate_reduced(method='tsne', hyperparameters=(30,0))
