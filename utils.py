@@ -22,6 +22,10 @@ class LabelColor(Enum):
     MAGENTA = 5
     GRAY = 6
     WHITE = 7
+    YELLOW = 8
+    DARK_YELLOW = 9
+    DARK_RED = 10
+
 
 def index_to_Qcolor(i):
     if i == LabelColor.RED.value:
@@ -36,6 +40,12 @@ def index_to_Qcolor(i):
         color = Qt.magenta
     elif i == LabelColor.GRAY.value:
         color = Qt.gray
+    elif i == LabelColor.YELLOW.value:
+        color = Qt.yellow
+    elif i == LabelColor.DARK_YELLOW.value:
+        color = Qt.darkYellow
+    elif i == LabelColor.DARK_RED.value:
+        color = Qt.darkRed
     else:
         color = Qt.black
     return color
