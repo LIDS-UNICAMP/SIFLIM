@@ -3,7 +3,7 @@ Software for image selection and marker labeling for FLIM using feature space pr
 
 ## Requirements
 Create virtual environment with Python 3.8 (ex. anaconda or miniconda)
-- PyIFT: ```pip install pyift-0.1-cp39-cp39-linux_x86_64.whl```
+- PyIFT: ```pip install pyift-0.1-cp38-cp38-linux_x86_64.whl```
 - PyQt5: ```pip install PyQt5```
 - Numpy: ```conda install numpy```
 
