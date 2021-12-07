@@ -62,7 +62,7 @@ class ProjectionWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-
+        self.ngroups = 10
         self.inputDataSet = None
         self.OPFDataset = None
         self.patchCSV = None
@@ -184,17 +184,12 @@ class ProjectionWindow(QWidget):
 
 
         # ============= HYPERPARAMETERS ============= 
-        self.hyperparameters = QGroupBox("Hyperparameters")
-        perplexitySlider = QSlider(Qt.Horizontal)
-        perplexitySlider.setMinimum(1)
-        perplexitySlider.setMaximum(100)
-        perplexitySlider.setMaximumWidth(200)
-        perplexitySlider.setValue(30)
-        perplexitySlider.setTickPosition(QSlider.TicksBelow)
-        perplexitySlider.setTickInterval(10)
+        self.hyperparameters = QGroupBox("Groups per Image")
+        ngroups_input = QLineEdit("10")
+        ngroups_input.textChanged.connect(self.changedNGroups)
         hyperparametersLayout = QVBoxLayout()
-        hyperparametersLayout.addWidget(QLabel("Perplexity"))
-        hyperparametersLayout.addWidget(perplexitySlider)
+        hyperparametersLayout.addWidget(QLabel("Groups per Image"))
+        hyperparametersLayout.addWidget(ngroups_input)
         self.hyperparameters.setLayout(hyperparametersLayout)
 
         # ============== GENERATE PROJECTION ===============
@@ -219,7 +214,11 @@ class ProjectionWindow(QWidget):
         layout.addStretch(1)
 
         self.projectionConfig.setLayout(layout)
-    
+
+    def changedNGroups(self, text):
+        if len(text) > 0:
+            self.ngroups = int(text)
+
     def btnstate(self,b):
 	
         if b.isChecked() == True:
@@ -228,15 +227,13 @@ class ProjectionWindow(QWidget):
         else:
             self.usePatches = False
             self.button2.setEnabled(False)
-            
-			
 
     def setProjectionPoints(self):
 
         if self.patches == True:
-            self.projector = Projector(self.inputDataSet, self.patchCSV)
+            self.projector = Projector(self.inputDataSet, self.patchCSV, self.ngroups)
         else:
-            self.projector = Projector(self.inputDataSet, None)
+            self.projector = Projector(self.inputDataSet, None, None)
         # self.projector = DummyProjector()
 
         self.projector.generate_reduced(method='tsne', hyperparameters=(30,0))
@@ -255,6 +252,7 @@ class ProjectionWindow(QWidget):
             
             self.layout().removeWidget(self.projectionView)
             self.projectionView = QGraphicsView(scene, parent=self)
+            self.projectionView.scale(2,2)
             self.layout().addWidget(self.projectionView)
             self.update()
         else:

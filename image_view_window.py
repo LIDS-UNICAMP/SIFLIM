@@ -1,7 +1,6 @@
-from PyQt5.QtCore import QPointF, Qt, QRect
+from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPainterPath, QWindow
-from PyQt5.QtGui import QBrush, QPainter, QColor, QPen, QPixmap, QPolygonF
+from PyQt5.QtGui import *
 import numpy as np
 
 from utils import *
@@ -19,9 +18,11 @@ class ImageViewWindow(QWidget):
 		hbox.addWidget(self.images_tab_bar)
 		self.setLayout(hbox)
 
-class ImageCanvas(QLabel):
+class ImageCanvas(QGraphicsScene):
 	def __init__(self, point, patch_set):
 		super().__init__()
+		self.setSceneRect(0,0,500,500)
+
 		self.sample = point.sample_point
 		self.last_x, self.last_y = None, None
 		if (self.sample.label == 0):
@@ -31,44 +32,44 @@ class ImageCanvas(QLabel):
 		
 		self.pen_color = index_to_Qcolor(self.label)
 		self.patch_set = patch_set
-		
-		self.pixmap_img = QPixmap(self.sample.img)
-		self.setFixedHeight(self.pixmap_img.height())
-		self.setFixedWidth(self.pixmap_img.width())
+		self.penWidth = 4
+		self.scribbling = False
 
-		# create painter instance with pixmap
-		self.painter = QPainter(self.pixmap_img)
+		loadedImage: QImage = QImage(self.sample.img)
+
+		self.pix = QPixmap.fromImage(loadedImage)
+		self.pixmap_item = self.addPixmap(self.pix)
+		painter = QPainter(self.pix)
 
 		# set rectangle color and thickness
 		self.penRectangle = QPen(Qt.red)
 		self.penRectangle.setWidth(3)
 
 		# draw rectangle on painter
-		self.painter.setPen(self.penRectangle)
+		painter.setPen(self.penRectangle)
 
 		for patch in self.patch_set:
 			l = (int(np.sqrt(patch.sample_point.size)))
 			bb = (patch.sample_point.voxel_coords[0] - l//2,
 				patch.sample_point.voxel_coords[1] - l//2, l)
-			self.painter.drawRect(bb[0], bb[1], bb[2], bb[2])
+			painter.drawRect(bb[0], bb[1], bb[2], bb[2])
 
 		# self.painter.drawRect(50, 50, 50, 50)
-
+		self.pixmap_item.setPixmap(self.pix)
+		self.update()
 
 		# draw previous markers, if any
-		p = self.painter.pen()
+		p = painter.pen()
 		p.setWidth(4)
 		p.setColor(self.pen_color)
-		self.painter.setPen(p)
+		
 		key = self.sample.img
 		if key in MARKERS.keys():
 			for xy in MARKERS[key]:
-				self.painter.drawPoint(QPointF(xy[0], xy[1]))
+				self.addEllipse(xy[0], xy[1], 1, 1, pen=p)
+		
+		painter.end()
 
-
-		self.painter.end()
-
-		self.setPixmap(self.pixmap_img)
 
 	def setLabel(self,l):
 		self.label = l
@@ -76,92 +77,111 @@ class ImageCanvas(QLabel):
 		self.sample.label = l
 
 	def reset(self):
-		self.last_x, self.last_y = None, None
+		self.lastPoint = QPointF()
 		
-		self.pixmap_img = QPixmap(self.sample.img)
-		self.setFixedHeight(self.pixmap_img.height())
-		self.setFixedWidth(self.pixmap_img.width())
+		loadedImage: QImage = QImage(self.sample.img)
+		
+		self.pix = QPixmap.fromImage(loadedImage)
+		self.pixmap_item = self.addPixmap(self.pix)
+		self.pixmap_item.setPixmap(self.pix)
+
+		
+		# self.pixmap_item_img = QPixmap(self.sample.img)
+		# self.setFixedHeight(self.pixmap_item_img.height())
+		# self.setFixedWidth(self.pixmap_item_img.width())
 
 		# create painter instance with pixmap
-		self.painter = QPainter(self.pixmap_img)
+		painter = QPainter(self.pix)
 
 		# set rectangle color and thickness
 		self.penRectangle = QPen(Qt.red)
 		self.penRectangle.setWidth(3)
 
-		# draw rectangles on painter
-		self.painter.setPen(self.penRectangle)
+		# draw rectangle on painter
+		painter.setPen(self.penRectangle)
+
 		for patch in self.patch_set:
 			l = (int(np.sqrt(patch.sample_point.size)))
 			bb = (patch.sample_point.voxel_coords[0] - l//2,
 				patch.sample_point.voxel_coords[1] - l//2, l)
-			self.painter.drawRect(bb[0], bb[1], bb[2], bb[2])
+			painter.drawRect(bb[0], bb[1], bb[2], bb[2])
+
 		# self.painter.drawRect(50, 50, 50, 50)
-
-		self.painter.end()
-
-		self.setPixmap(self.pixmap_img)
+		self.pixmap_item.setPixmap(self.pix)
+		self.update()
 
 		# reset markers
 		key = self.sample.img
 		MARKERS[key] = set()
 		
-
-	def mouseMoveEvent(self, e):
-		x = e.x()
-		y = e.y()
 	
-		if self.last_x is None: # First event.
-			self.last_x = x
-			self.last_y = y
-			return # Ignore the first time.
+	def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
+		if event.button() == Qt.LeftButton:
+			self.lastPoint = event.scenePos()
+			print((self.lastPoint.x(), self.lastPoint.y()))
+			self.scribbling = True
 
-		painter = QPainter(self.pixmap())
-		p = painter.pen()
-		p.setWidth(4)
-		p.setColor(self.pen_color)
-		painter.setPen(p)
-		painter.drawLine(self.last_x, self.last_y, x, y)
-		painter.end()
+
+	def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
+		if (event.buttons() == Qt.LeftButton) and self.scribbling:
+			x = int(event.scenePos().x())
+			y = int(event.scenePos().y())
+
+			# add points from line to markers set
+			key = self.sample.img
+
+			last_x = int(self.lastPoint.x())
+			last_y = int(self.lastPoint.y())
+			
+			step_x = 1
+			if (last_x > x):
+				step_x = -1
+			for x_ in range(last_x,x, step_x):
+				a = (y - last_y) / (x - last_x)
+				y_ = last_y + a*(x_ - last_x)
+				if key in MARKERS.keys():
+					MARKERS[key].add((x_, round(y_), self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
+				else:
+					MARKERS[key] = set()
+
+			step_y = 1
+			if (last_y > y):
+				step_y = -1
+
+			for y_ in range(last_y,y, step_y):
+				if not (abs(x - last_x) < 1):
+					a = (y - last_y) / (x - last_x)
+					x_ = last_x + (1/a)*(y_ - last_y)
+				else:
+					x_ = last_x
+
+				if key in MARKERS.keys():
+					MARKERS[key].add((round(x_), y_, self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
+				else:
+					MARKERS[key] = set()
+
+				self.drawLineTo(event.scenePos())
+
+
+	def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
+		if (event.button() == Qt.LeftButton and self.scribbling):
+			self.drawLineTo(event.scenePos())
+			self.scribbling = False
+		
+	
+
+	def drawLineTo(self, endPoint: QPointF):
+	
+		# painter = QPainter(self.pix)
+		# painter.setPen(QPen(self.pen_color, self.penWidth, Qt.SolidLine, Qt.RoundCap,
+		# 					Qt.RoundJoin))
+		# painter.drawLine(self.lastPoint, endPoint)
+		pen = QPen(self.pen_color, self.penWidth, Qt.SolidLine, Qt.RoundCap,
+		 					Qt.RoundJoin)
+		self.addLine(self.lastPoint.x(), self.lastPoint.y(), endPoint.x(), endPoint.y(), pen=pen)
+		# painter.end()
 		self.update()
-
-		# add points from line to markers set
-		key = self.sample.img
-
-		step_x = 1
-		if (self.last_x > x):
-			step_x = -1
-		for x_ in range(self.last_x,x, step_x):
-			a = (y - self.last_y) / (x - self.last_x)
-			y_ = self.last_y + a*(x_ - self.last_x)
-			if key in MARKERS.keys():
-				MARKERS[key].add((x_, round(y_), self.pixmap_img.width(), self.pixmap_img.height(), self.label))
-			else:
-				MARKERS[key] = set()
-
-		step_y = 1
-		if (self.last_y > y):
-			step_y = -1
-
-		for y_ in range(self.last_y,y, step_y):
-			if not (abs(x - self.last_x) < 1):
-				a = (y - self.last_y) / (x - self.last_x)
-				x_ = self.last_x + (1/a)*(y_ - self.last_y)
-			else:
-				x_ = self.last_x
-
-			if key in MARKERS.keys():
-				MARKERS[key].add((round(x_), y_, self.pixmap_img.width(), self.pixmap_img.height(), self.label))
-			else:
-				MARKERS[key] = set()
-
-		# Update the origin for next time.
-		self.last_x = x
-		self.last_y = y
-
-	def mouseReleaseEvent(self, e):
-		self.last_x = None
-		self.last_y = None
+		self.lastPoint = endPoint
 
 class ImagesTabs(QTabWidget):
 	def __init__(self, points):
@@ -181,7 +201,12 @@ class ImagesTabs(QTabWidget):
 			tab = QWidget()
 			vbox_layout = QVBoxLayout()
 
-			sample_canvas = ImageCanvas(point, bb_imgs[sample_img])
+			sample_canvas: QGraphicsScene = ImageCanvas(point, bb_imgs[sample_img])
+			sample_view = QGraphicsView(parent=tab)
+			sample_view.setScene(sample_canvas)
+
+			scale: float = 500/sample_canvas.pixmap_item.pixmap().width()
+			sample_view.scale(scale,scale)
 
 			cb = QComboBox()
 			for color in LabelColor:
@@ -196,7 +221,7 @@ class ImagesTabs(QTabWidget):
 
 			vbox_layout.addWidget(cb)
 			vbox_layout.addWidget(reset_markers_button)
-			vbox_layout.addWidget(sample_canvas)
+			vbox_layout.addWidget(sample_view)
 			tab.setLayout(vbox_layout)
 			self.tabs.append(tab)
 
