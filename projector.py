@@ -59,8 +59,6 @@ class Projector():
         img_as_labels = []
         for i in range(len(ref_data)):
             img_path = ref_data[i]
-            img_number = int(ref_data[i].split('_')[1].split('.')[0])
-            img_class = class_truelabels[i]
 
             if img_path not in img_dict.keys():
                 img_dict[img_path] = []
@@ -81,7 +79,7 @@ class Projector():
 
             kmeans = MiniBatchKMeans(n_clusters=self.ngroups, random_state=0, batch_size=1)
             kmeans.fit(X)
-            for j in range(10):
+            for j in range(self.ngroups):
                 d = kmeans.transform(X)[:, j]
                 ind = np.argsort(d)[::-1][:1]
                 selected_patches.append(patches[ind[0]]['patch_index'])
