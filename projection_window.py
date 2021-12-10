@@ -184,13 +184,13 @@ class ProjectionWindow(QWidget):
 
 
         # ============= HYPERPARAMETERS ============= 
-        self.hyperparameters = QGroupBox("Groups per Image")
-        ngroups_input = QLineEdit("10")
-        ngroups_input.textChanged.connect(self.changedNGroups)
-        hyperparametersLayout = QVBoxLayout()
-        hyperparametersLayout.addWidget(QLabel("Groups per Image"))
+        # self.hyperparameters = QGroupBox("Groups per Image")
+        # ngroups_input = QLineEdit("10")
+        # ngroups_input.textChanged.connect(self.changedNGroups)
+        # hyperparametersLayout = QVBoxLayout()
+        # hyperparametersLayout.addWidget(QLabel("Groups per Image"))
         # hyperparametersLayout.addWidget(ngroups_input)
-        self.hyperparameters.setLayout(hyperparametersLayout)
+        # self.hyperparameters.setLayout(hyperparametersLayout)
 
         # ============== GENERATE PROJECTION ===============
         generateProjectionButton = QPushButton(self)
