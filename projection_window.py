@@ -189,7 +189,7 @@ class ProjectionWindow(QWidget):
         ngroups_input.textChanged.connect(self.changedNGroups)
         hyperparametersLayout = QVBoxLayout()
         hyperparametersLayout.addWidget(QLabel("Groups per Image"))
-        hyperparametersLayout.addWidget(ngroups_input)
+        # hyperparametersLayout.addWidget(ngroups_input)
         self.hyperparameters.setLayout(hyperparametersLayout)
 
         # ============== GENERATE PROJECTION ===============
