@@ -1,0 +1,4 @@
+PyQt5
+numpy
+sklearn
+pyift-0.1-cp38-cp38-linux_x86_64.whl

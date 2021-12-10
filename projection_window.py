@@ -252,7 +252,6 @@ class ProjectionWindow(QWidget):
             
             self.layout().removeWidget(self.projectionView)
             self.projectionView = QGraphicsView(scene, parent=self)
-            self.projectionView.scale(2,2)
             self.layout().addWidget(self.projectionView)
             self.update()
         else:

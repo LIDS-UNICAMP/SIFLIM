@@ -48,61 +48,6 @@ class Projector():
     
     def generate_reduced(self, method, hyperparameters):
         Z = self.dataset
-        class_truelabels = Z.GetTrueLabels()
-        ref_data = Z.GetRefData()
-        patch_ids = Z.GetIds()
-        patches_feats = Z.GetData()
-
-        # dict of sets of patches from same image (=key)
-        img_dict = dict()
-
-        img_as_labels = []
-        for i in range(len(ref_data)):
-            img_path = ref_data[i]
-
-            if img_path not in img_dict.keys():
-                img_dict[img_path] = []
-
-
-            img_dict[img_path].append({
-                "patch_index": i,
-                "patch_features": patches_feats[i]
-            })
-
-        selected_patches = []
-        for key in img_dict.keys():
-            patches = img_dict[key]
-            array_for_kmeans = []
-            for patch in patches:
-                array_for_kmeans.append(patch['patch_features'])
-            X = np.array(array_for_kmeans)
-
-            kmeans = MiniBatchKMeans(n_clusters=self.ngroups, random_state=0, batch_size=1)
-            kmeans.fit(X)
-            for j in range(self.ngroups):
-                d = kmeans.transform(X)[:, j]
-                ind = np.argsort(d)[::-1][:1]
-                selected_patches.append(patches[ind[0]]['patch_index'])
-        
-        X_for_dim_redux = []
-        Xlabels = []
-        small_refdata = []
-        small_patch_ids = []
-        
-        for i in selected_patches:
-            X_for_dim_redux.append(patches_feats[i].tolist())
-            Xlabels.append(class_truelabels[i])
-            small_refdata.append([ref_data[i]])
-            small_patch_ids.append(patch_ids[i])
-
-        X_for_dim_redux = np.array(X_for_dim_redux, dtype=np.float32)
-        Xlabels = np.array(Xlabels, dtype=np.int32)
-        small_patch_ids = np.array(small_patch_ids)
-        small_dataset:ift.DataSet = ift.CreateDataSetFromNumPy(X_for_dim_redux, Xlabels)
-        small_dataset.SetRefData(small_refdata)
-        small_dataset.SetId(small_patch_ids)
-
-        self.dataset = small_dataset
 
         if method == 'tsne':
             perplexity = hyperparameters[0]
