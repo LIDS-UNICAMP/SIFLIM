@@ -1,0 +1,2 @@
+rm -r ~/anaconda3/envs/siflim-dist/lib/python3.8/site-packages/pyift ~/anaconda3/envs/siflim-dist/lib/python3.8/site-packages/pyift-0.1.dist-info ~/anaconda3/envs/siflim-dist/lib/python3.8/site-packages/_pyift.cpython-38-x86_64-linux-gnu.so ~/anaconda3/envs/siflim-dist/lib/python3.8/site-packages/pyift.egg-link 
+rm -r ~/ift/PyIFT/pyift/*
