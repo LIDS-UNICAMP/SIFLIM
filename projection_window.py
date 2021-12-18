@@ -206,7 +206,7 @@ class ProjectionWindow(QWidget):
 
         layout.addWidget(inputFilesGroupBox)
 
-        layout.addWidget(self.hyperparameters)
+        # layout.addWidget(self.hyperparameters)
 
         layout.addWidget(generateProjectionButton)
         layout.addWidget(saveMarkersButton)

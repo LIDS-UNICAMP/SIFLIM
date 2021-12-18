@@ -32,7 +32,7 @@ class ImageCanvas(QGraphicsScene):
 		
 		self.pen_color = index_to_Qcolor(self.label)
 		self.patch_set = patch_set
-		self.penWidth = 4
+		self.penWidth = 2
 		self.scribbling = False
 
 		loadedImage: QImage = QImage(self.sample.img)
@@ -43,7 +43,7 @@ class ImageCanvas(QGraphicsScene):
 
 		# set rectangle color and thickness
 		self.penRectangle = QPen(Qt.red)
-		self.penRectangle.setWidth(3)
+		self.penRectangle.setWidth(2)
 
 		# draw rectangle on painter
 		painter.setPen(self.penRectangle)
@@ -60,13 +60,14 @@ class ImageCanvas(QGraphicsScene):
 
 		# draw previous markers, if any
 		p = painter.pen()
-		p.setWidth(4)
+		p.setWidth(1)
 		p.setColor(self.pen_color)
 		
 		key = self.sample.img
 		if key in MARKERS.keys():
 			for xy in MARKERS[key]:
-				self.addEllipse(xy[0], xy[1], 1, 1, pen=p)
+				
+				self.addEllipse(xy[0], xy[1], 1, 1,pen=self.pen_color, brush=QBrush(Qt.SolidPattern))
 		
 		painter.end()
 
@@ -95,7 +96,7 @@ class ImageCanvas(QGraphicsScene):
 
 		# set rectangle color and thickness
 		self.penRectangle = QPen(Qt.red)
-		self.penRectangle.setWidth(3)
+		self.penRectangle.setWidth(2)
 
 		# draw rectangle on painter
 		painter.setPen(self.penRectangle)
@@ -136,11 +137,13 @@ class ImageCanvas(QGraphicsScene):
 			step_x = 1
 			if (last_x > x):
 				step_x = -1
+			size = self.pixmap_item.pixmap().width()
 			for x_ in range(last_x,x, step_x):
 				a = (y - last_y) / (x - last_x)
 				y_ = last_y + a*(x_ - last_x)
 				if key in MARKERS.keys():
-					MARKERS[key].add((x_, round(y_), self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
+					if x_ < size and x_ > 0 and y_ > 0 and y_ < size:
+						MARKERS[key].add((x_, round(y_), self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
 				else:
 					MARKERS[key] = set()
 
