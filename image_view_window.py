@@ -159,7 +159,8 @@ class ImageCanvas(QGraphicsScene):
 					x_ = last_x
 
 				if key in MARKERS.keys():
-					MARKERS[key].add((round(x_), y_, self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
+					if x_ < size and x_ > 0 and y_ > 0 and y_ < size:
+						MARKERS[key].add((round(x_), y_, self.pixmap_item.pixmap().width(), self.pixmap_item.pixmap().height(), self.label))
 				else:
 					MARKERS[key] = set()
 
