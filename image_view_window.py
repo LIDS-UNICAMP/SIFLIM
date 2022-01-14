@@ -212,6 +212,8 @@ class ImagesTabs(QTabWidget):
 			scale: float = 500/sample_canvas.pixmap_item.pixmap().width()
 			sample_view.scale(scale,scale)
 
+			sample_view.centerOn(sample_canvas.pixmap_item)
+
 			cb = QComboBox()
 			for color in LabelColor:
 				cb.addItem("Class "+ str(color.value))
