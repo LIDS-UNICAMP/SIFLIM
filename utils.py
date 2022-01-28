@@ -80,9 +80,9 @@ def get_voxel_from_csv(path_to_csv, id):
     with open(path_to_csv) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            if int(row[0][-5:]) == int(id):
+            if int(row[0][-10:]) == int(id):
                 cols = row[0].split('-')
-                return int(cols[1]), int(cols[2]), int(cols[3])
+                return int(cols[1]), int(cols[2]), int(cols[4])
     return None
 
 #-------------------------------------------------------------------------------
